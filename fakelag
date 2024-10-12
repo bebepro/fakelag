@@ -1,0 +1,61 @@
+local button = script.Parent
+local Players = game:GetService("Players")
+local player = Players.LocalPlayer
+
+-- Fake lag settings
+local lagActive = false
+local lagAmount = 0.1  -- Amount of delay to simulate low FPS
+local originalWalkSpeed = 16  -- Default walk speed
+
+-- Function to simulate low FPS
+local function simulateLowFPS(character)
+	while lagActive do
+		if character and character:FindFirstChild("Humanoid") then
+			character.Humanoid.WalkSpeed = 0  -- Stop movement for a brief moment
+			wait(lagAmount)  -- Wait to simulate low FPS
+			character.Humanoid.WalkSpeed = originalWalkSpeed  -- Restore original walk speed
+		end
+		wait(lagAmount)  -- Adjust this to change how choppy the movement is
+	end
+end
+
+-- Function to toggle the fake lag
+local function toggleFakeLag()
+	lagActive = not lagActive  -- Toggle the state
+
+	if lagActive then
+		button.BackgroundColor3 = Color3.new(0.905882, 0.196078, 0.0196078) -- Orange when active
+
+		-- Call simulateLowFPS in a separate coroutine to avoid blocking the button
+		coroutine.wrap(function()
+			local character = player.Character or player.CharacterAdded:Wait()  -- Get the current character
+			simulateLowFPS(character)  -- Start simulating low FPS
+		end)()
+	else
+		button.BackgroundColor3 = Color3.new(0.0117647, 0.0117647, 0.0117647) -- Black when inactive
+		if player.Character and player.Character:FindFirstChild("Humanoid") then
+			player.Character.Humanoid.WalkSpeed = originalWalkSpeed -- Restore speed when toggled off
+		end
+	end
+end
+
+-- Function to handle character reset
+local function onCharacterAdded(character)
+	-- Reinitialize the character settings if fake lag is active
+	if lagActive then
+		coroutine.wrap(function()
+			simulateLowFPS(character)  -- Restart the low FPS simulation
+		end)()
+	end
+end
+
+-- Connect the button click event to toggle fake lag
+button.MouseButton1Click:Connect(toggleFakeLag)
+
+-- Connect the character added event
+player.CharacterAdded:Connect(onCharacterAdded)
+
+-- Make sure the script works if the character is already loaded
+if player.Character then
+	onCharacterAdded(player.Character)
+end
